@@ -1,0 +1,160 @@
+%Problem
+\section{Problem}\label{sec:problem}
+This section contains a model of the problem being studied, along with a list of variables used to describe it. The representation used is defined and an example solution is shown. The symbols used in the model are presented in the Table \ref{tab:notation}.
+
+\subsection{Problem assumptions}
+
+Before presenting the complete model formulation, some assumptions will be made regarding its properties. For clarity, they will be presented in the form of key points. Based on these assumptions, a mathematical MILP model of the problem will be presented.
+
+\begin{enumerate}
+    \item There are two levels of qualification for service teams - junior and senior. The number of the teams is preset,
+    \item Two shifts of service crews are introduced. The working time of each shift is half of the depot opening time specified in Solomon's instances,
+    \item The cost of travel between two points is independent of the skills of the service team,
+    \item Each location can be served by a team of any qualification level. If the team has senior qualifications, service time is reduced by 50\%,
+    \item Overtime of service crews is allowed and paid twice,
+    \item Exceeding the time window, both from above and below, results in a cost penalty,
+    \item The labor cost of each team is constant, regardless of whether it accepts the service order or not. Therefore, it will be omitted from the objective function,
+    \item The service crew carries consumables to perform a service. The amount that a single vehicle can carry is limited to 1,000 kilograms, which is the payload capacity of a standard delivery vehicle.
+
+\end{enumerate}
+
+\subsection{Definition of variables}
+
+In the problem formulated, we assume the existence of $r$ service recipients in the set $\mathcal{R} = \{1, 2, \dots, r\}$. This set is extended by location 0, representing the starting node called the depot, creating a set $\mathcal{L} = \{0\} \cup \mathcal{R}$. The depot is a start and end point for each of the service vehicles and has an opening time in the range $[0, d_0]$. Each location $i \in \mathcal{R}$ has defined its coordinates, based on which the travel time between locations is calculated. The travel time is equal to the cost of the route and is represented by the matrix C, where $c_{i,j} \in \mathbb{N}$. Moreover, each location has a defined soft time window $[b_i, d_i] \in \mathbb{N}$, $b_i \leq d_i$, $i \in \mathcal{R}$ and service time $s_{i} \in \mathbb{N}$. The need to adapt to Solomon's test instances forces the assumption that the service time may be longer than the localization time window. The penalties are constant for each location and given with $e_p, e_q \in \mathbb{N}$. Each location must be visited exactly once.
+
+\begin{table}[ht]
+		\renewcommand{\arraystretch}{1.3}
+	\caption{Notation summary}
+	\label{tab:notation}
+	\centering
+	\begin{tabular}{l|l}
+		\hline\hline
+		\textbf{Symbol} & \textbf{Meaning}  \\
+		\hline \hline
+        \multicolumn{2}{c}{\textbf{Indexes}} \\
+        \hline
+        $i, j$ & indexes for locations \\ 
+        \hline
+        $k$ & index for crew type \\ 
+        \hline
+        $v$ & index for crew vehicle \\
+        \hline
+        \multicolumn{2}{c}{\textbf{Input data}} \\
+        \hline
+	      $\mathcal{R}, r$ & set of service recipients, number of service recipients \\ 
+		\hline
+		$\mathcal{L}$ & set of all locations \\ 
+		\hline
+		$\mathcal{V}, v$ & set of crews, number of crews \\ 
+        \hline
+		$\mathcal{C}, c_{i,j}$ & cost matrix, cost matrix element \\ 
+        \hline
+		$b_{i}$ & beginning of the location $i$ time window\\ 
+        \hline
+		$d_{i}$ & end of the location $i$ time window \\ 
+        \hline
+		$s_{i}$ & service time of location $i$ \\ 
+        \hline
+        $m_i$ & service demand for location $i$ \\
+        \hline        
+		$e_{p}$ & penalty for early arrival before location time window \\ 
+        \hline   
+        $e_{q}$ & penalty for late departure after location time window \\ 
+        \hline
+        $\mathcal{V}$, $v$ & set of service crews, number of service crews \\
+        \hline
+        $\alpha_v$ & start time of shift for vehicle $v$ \\
+        \hline
+        $\beta_v$ & end time of shift for vehicle $v$ \\
+        \hline
+        $\gamma_v$ & service time multiplier for vehicle $v$ \\
+        \hline
+		$\delta_{v}$ & overtime cost multiplier for a vehicle $v$\\ 
+        \hline
+        $\zeta_v$ & basic cost of the shift for vehicle $v$ \\
+        \hline
+        $W$ & vehicle load limit \\
+        \hline
+		$\mathcal{S}$ & a list of subtour combinations \\ 
+        \hline
+        \multicolumn{2}{c}{\textbf{Decision variables}} \\
+        \hline
+		$x_{i,j,v}$ & defines if a vehicle $v$ runs between $i$ and $j$ locations \\ 
+        \hline
+		$y_{i,v}$ & defines if a vehicle $v$ is visiting location $i$ \\ 
+        \hline
+		$t_{i,v}$ & defines a time of arrival a vehicle $v$ to location $i$ \\
+        \hline
+		$p_{i,v}$ & defines a time of service before location $i$ time window \\
+        \hline
+		$q_{i,v}$ & defines a time of service after location $i$ time window \\
+        \hline
+		$w_{i,v}$ & defines a waiting time before servicing location $i$  \\
+		\hline
+        $h_{v}$ & defines a total working time of vehicle $v$  \\
+		\hline
+        $a_{v}$ & defines calculated overhours of vehicle $v$  \\
+		\hline\hline
+	\end{tabular}
+\end{table}
+
+Next, it is necessary to define the set of service crews $\mathcal{V}$. First, the types of crew are established depending on their experience and shift. We assume the existence of two morning and afternoon shifts and two experience levels: junior and senior. The working hours of the crew and their costs are given in the object of the crew as constants $\alpha_v, \beta_v, \gamma_v, \zeta_v$, where $v \in \mathcal{V}$. The depot has the same number of teams with the skills given for each shift. The working time for the morning shift is set in the range $[0, d_0/2]$ and the afternoon shift $[d_0/2, d_0]$. Each vehicle has the same load limit defined by $W$.
+
+Additionally, we introduce a set of all subtour combinations $S \in \mathcal{S}$ to gain the ability to write a restriction that will ensure that there will be no vehicle routes not connected to the depot. Also, a waiting time $w_{i,v}$ is needed to be set, to model the situation where the team waits idle during the route for the next location's time window to start, to correctly calculate the time of arrival at the location.
+
+
+\subsection{Model formulation}
+The model of a given Heterogenous Capacitated Vehicle Routing Problem with Time Windows (HCVRP-TW) consists of two parts. As in this paper, the Mixed Integer Linear Programming (MILP) model is used, the first defined element is a goal function $F(\pi) = F_1(\pi) + F_2(\pi) + F_3(\pi) + F_4(\pi)$ that minimizes the total cost of work performed by all teams. 
+
+The element $F_1(\pi)$ takes into account the cost of the distance traveled by all vehicles. In the equation, a decision variable $x$, which defines if a vehicle $v$ runs between the $i$ and $j$ locations, is multiplied by the cost of traveling this arc.
+
+\begin{equation}\label{eq:goalFunction1}
+     F_1(\pi) =  \left(\sum_{i \in \mathcal{L}} \sum_{j \in \mathcal{L}} \sum_{v \in \mathcal{V}}  x_{i,j,v} c_{i,j}\right)
+\end{equation}
+
+The next criterion includes into the goal function a cost of overtime hours for each vehicle. This cost is fixed and depends on the level of qualification of the team.
+\begin{equation}\label{eq:goalFunction2}
+     F_2(\pi) = \left(\sum_{v \in \mathcal{V}}  a_{v} \delta_{v}\right)
+\end{equation}
+
+Finally, $F_3(\pi)$, the last part of the goal function, refers to penalties charged for exceeding time windows when servicing a given location. The variables $p_{i, v}$ and $q_{i, v}$ represent the service time performed before the time window and the service time performed after the time window, respectively. The variables mentioned are multiplied by the penalty factors $e_q$, $e_p$ for too early arrival and too late departure respectively.
+\begin{equation}\label{eq:goalFunction3}
+     F_3(\pi) =  \left(\sum_{i \in \mathcal{R}} \sum_{v \in \mathcal{V}} (e_p p_{i, v} + e_q q_{i, v}) \right) \;  
+\end{equation}
+
+Finally, $F_4(\pi)$, the last part of the goal function, add the basic cost of the crew, if it has at least one location assigned. The assignment of at least one order to a vehicle can be checked based on whether its route has an edge leading to the depot.
+
+\begin{equation}\label{eq:goalFunction4}
+     F_4(\pi) =  \left(\sum_{i \in \mathcal{R}} \sum_{v \in \mathcal{V}} x_{i,0,v} \zeta_v \right) \;  
+\end{equation}
+
+
+The presented goal function is minimized under the following constraints:
+\scriptsize
+
+\begin{align} 
+    h_{v} \geq \sum_{i \in \mathcal{L}} \sum_{j \in \mathcal{L}} ( x_{i,j,v} c_{i,j} ) +  &&\nonumber\\
+    +\sum_{i \in \mathcal{R}} (y_{i,v} s_{i} \gamma_v + w_{i,v}) & & \quad \forall v \in \mathcal{V}, \label{eq:c1} \\
+    a_{v} \geq h_{v} - (\beta_v - \alpha_v) & & \quad \forall v \in \mathcal{V}, \label{eq:c2} \\
+    \sum_{i \in \mathcal{R}} y_{i,v} m_i \leq W & & \quad \forall v \in \mathcal{V} , \label{eq:c3} \\
+    \sum_{v \in \mathcal{V}} y_{i,v} = 1 & & \quad \forall i \in \mathcal{R} , \label{eq:c4} \\
+    y_{i,v}  = \sum_{j \in \mathcal{L}} x_{j,i,v} && \quad \forall i \in \mathcal{R}, v \in \mathcal{V}, \label{eq:c5}\\
+    y_{i,v}  = \sum_{j \in \mathcal{L}} x_{0,j,v} && \quad  \forall i \in \mathcal{R}, v \in \mathcal{V}, \label{eq:c6}\\
+    \sum_{i \in \mathcal{L}} x_{i,0,v} \leq 1 && \quad \forall v \in \mathcal{V}, \label{eq:c7}\\
+     \sum_{i \in \mathcal{L}} x_{i,i,v} = 0 && \quad \forall v \in \mathcal{V}, \label{eq:c8} \\
+    \sum_{j \in \mathcal{L}} x_{i,j,v} = \sum_{j \in \mathcal{L}} x_{j,i,v} && \quad \forall i \in \mathcal{L}, v \in \mathcal{V}, \label{eq:c9} \\
+    \sum_{i \in S} \sum_{j \in S, i \neq j} x_{i,j,v} \leq |S| - 1 && \quad \forall v \in \mathcal{V}, S \in \mathcal{S}, |S| \geq 2, \label{eq:c10} \\
+    t_{i,v} + c_{i,j} + s_{i} \gamma_v - M(1-x_{i,j,v}) \leq t_{j,v} && \quad \forall v \in \mathcal{V}, i \in \mathcal{L}, j \in \mathcal{R}, \label{eq:c11} \\
+    p_{i, v} \geq b_{i} - t_{i,v} - M(1-y_{i,v})  && \quad \forall v \in \mathcal{V}, i \in \mathcal{R}, \label{eq:c12} \\
+    q_{i, v} \geq t_{i,v} + s_{i} \gamma_v - d_i - M(1-y_{i,v})  && \quad \forall v \in \mathcal{V}, i \in \mathcal{R}, \label{eq:c13} \\
+    w_{i, v} \geq t_{j, v} - s_{i} \gamma_v - c_{i,j} - t_{i,v} - M(1-y_{i,v})  && \quad \forall v \in \mathcal{V}, i,j \in \mathcal{R}, \label{eq:c14}
+    \end{align}
+    \begin{align}
+    x_{i,j,v} \in \{0,1\} & & \quad v \in \mathcal{V}, i,j \in \mathcal{L} , \label{eq:cx} \\    
+    y_{i,v} \in \{0,1\} & & \quad \forall v \in \mathcal{V}, i,j \in \mathcal{R} , \label{eq:cy} \\  
+    t_{i,v} \in [\alpha_{v}, 2d_0] & & \quad \forall v \in \mathcal{V}, i \in \mathcal{R} , \label{eq:t} \\ 
+    p_{i,v}, q_{i,v}, h_v, a_{v} \in [0, 2d_0] & & \quad \forall v \in \mathcal{V}, i \in \mathcal{R} , \label{eq:pq} \\
+    w_{i,v} \in \{0\} & & \quad \forall v \in \mathcal{V}, i \in \mathcal{L} \label{eq:w}
+\end{align}
+\normalsize
+The constraint \ref{eq:c1} calculates the total working time of each vehicle, taking into account the travel time, the service time depending on crew skills and the waiting time between locations. To calculate team overhours, variable $a{v}$ which presents the difference between actual and planned working time, is introduced in constraint \ref{eq:c2}. As the crews transport the materials to perform the service, it is necessary to check whether their number does not exceed the vehicle's load capacity, which is done in constraint \ref{eq:c3}. In equation \ref{eq:c4} it is written that the location is serviced by only one vehicle. Setting the state of the variable y to 1 if a vehicle is driving towards it is in turn done in the equations \ref{eq:c5} and \ref{eq:c6}. Constraint \ref{eq:c7} ensures that each vehicle that leave the depot, will return to it, and constraint \ref{eq:c8} blocks creating tours from location to itself. A tour continuity is assured in \ref{eq:c9}, which guarantee that if vehicle enter the location it leaves it as well. Preventing subtour creation is done with \ref{eq:c10}. Calculation of arrival time of vehicle $v$ to given location is done in \ref{eq:c11}. The times of exceeding the time windows are calculated in the \ref{eq:c12} and \ref{eq:c13} equations from above and below, respectively. In constraint \ref{eq:c14} waiting time is calculated. Finally the range of decision variables is given in \ref{eq:cx}, \ref{eq:cy}, \ref{eq:t}, \ref{eq:pq} and \ref{eq:w}.
